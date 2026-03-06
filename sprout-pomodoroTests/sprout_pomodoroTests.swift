@@ -2,35 +2,87 @@
 //  sprout_pomodoroTests.swift
 //  sprout-pomodoroTests
 //
-//  Created by Youngho Chaa on 06/03/2026.
-//
 
 import XCTest
 @testable import sprout_pomodoro
 
-final class sprout_pomodoroTests: XCTestCase {
+@MainActor
+final class TimerViewModelTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    func test_initialState_isNotRunning() {
+        let vm = TimerViewModel()
+        XCTAssertFalse(vm.isRunning)
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func test_initialState_remainingTimeEqualsDuration() {
+        let vm = TimerViewModel()
+        XCTAssertEqual(vm.remainingSeconds, vm.durationSeconds)
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    func test_start_setsIsRunningTrue() {
+        let vm = TimerViewModel()
+        vm.start()
+        XCTAssertTrue(vm.isRunning)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func test_pause_setsIsRunningFalse() {
+        let vm = TimerViewModel()
+        vm.start()
+        vm.pause()
+        XCTAssertFalse(vm.isRunning)
     }
 
+    func test_reset_restoresRemainingToFull() {
+        let vm = TimerViewModel()
+        vm.start()
+        vm.remainingSeconds = 30
+        vm.reset()
+        XCTAssertEqual(vm.remainingSeconds, vm.durationSeconds)
+        XCTAssertFalse(vm.isRunning)
+    }
+
+    func test_formattedTime_showsMMSS() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 125 // 2:05
+        XCTAssertEqual(vm.formattedTime, "02:05")
+    }
+
+    func test_formattedTime_showsZero() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 0
+        XCTAssertEqual(vm.formattedTime, "00:00")
+    }
+
+    func test_tick_decrementsRemainingSeconds() {
+        let vm = TimerViewModel()
+        vm.start()
+        let before = vm.remainingSeconds
+        vm.tick()
+        XCTAssertEqual(vm.remainingSeconds, before - 1)
+    }
+
+    func test_tick_doesNotDecrementBelowZero() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 0
+        vm.tick()
+        XCTAssertEqual(vm.remainingSeconds, 0)
+    }
+
+    func test_tick_whenReachesZero_setsIsRunningFalse() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertFalse(vm.isRunning)
+    }
+
+    func test_tick_whenReachesZero_callsOnFinish() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 1
+        var finished = false
+        vm.onFinish = { finished = true }
+        vm.start()
+        vm.tick()
+        XCTAssertTrue(finished)
+    }
 }
