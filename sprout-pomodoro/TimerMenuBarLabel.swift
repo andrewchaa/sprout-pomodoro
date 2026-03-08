@@ -16,5 +16,13 @@ struct TimerMenuBarLabel: View {
                 .monospacedDigit()
                 .font(.system(size: 12, weight: .medium))
         }
+        .foregroundColor(viewModel.isRunning ? .white : nil)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 2)
+        .background {
+            if viewModel.isRunning {
+                Capsule().fill(Color.orange)
+            }
+        }
     }
 }
