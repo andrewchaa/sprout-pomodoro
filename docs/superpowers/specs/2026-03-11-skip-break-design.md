@@ -48,12 +48,12 @@ if viewModel.mode == .breakTime && !viewModel.isRunning {
 
 Four new cases in `TimerViewModelTests`, mirroring the `skipToBreak` suite:
 
-| Test | Assertion |
-|------|-----------|
-| `test_skipToFocus_switchesToFocusMode` | `mode == .focus` |
-| `test_skipToFocus_resetsRemainingToFocusDuration` | `remainingSeconds == timerDurationMinutes * 60` |
-| `test_skipToFocus_pausesTimer` | `isRunning == false` |
-| `test_skipToFocus_whenAlreadyInFocus_isNoOp` | mode and remainingSeconds unchanged |
+| Test | Setup | Assertion |
+|------|-------|-----------|
+| `test_skipToFocus_switchesToFocusMode` | `vm.mode = .breakTime` | `mode == .focus` |
+| `test_skipToFocus_resetsRemainingToFocusDuration` | `vm.timerDurationMinutes = 25; vm.mode = .breakTime` | `remainingSeconds == 25 * 60` |
+| `test_skipToFocus_pausesTimer` | `vm.mode = .breakTime; vm.start()` | `isRunning == false` |
+| `test_skipToFocus_whenAlreadyInFocus_isNoOp` | `vm.remainingSeconds = 60` (partial, mode stays `.focus`) | mode unchanged, `remainingSeconds == 60` |
 
 ## Files Changed
 
