@@ -80,9 +80,129 @@ final class TimerViewModelTests: XCTestCase {
         let vm = TimerViewModel()
         vm.remainingSeconds = 1
         var finished = false
-        vm.onFinish = { finished = true }
+        vm.onFinish = { _ in finished = true }
         vm.start()
         vm.tick()
         XCTAssertTrue(finished)
+    }
+
+    // MARK: - Mode tests
+
+    func test_initialMode_isFocus() {
+        let vm = TimerViewModel()
+        XCTAssertEqual(vm.mode, .focus)
+    }
+
+    func test_durationSeconds_inFocusMode_usesFocusDuration() {
+        let vm = TimerViewModel()
+        vm.timerDurationMinutes = 25
+        XCTAssertEqual(vm.durationSeconds, 25 * 60)
+    }
+
+    func test_durationSeconds_inBreakMode_usesBreakDuration() {
+        let vm = TimerViewModel()
+        vm.breakDurationMinutes = 5  // set before mode change — AppStorage didSet is a no-op (mode is .focus)
+        vm.mode = .breakTime
+        XCTAssertEqual(vm.durationSeconds, 5 * 60)
+    }
+
+    func test_skipToBreak_switchesToBreakMode() {
+        let vm = TimerViewModel()
+        vm.skipToBreak()
+        XCTAssertEqual(vm.mode, .breakTime)
+    }
+
+    func test_skipToBreak_resetsRemainingToBreakDuration() {
+        let vm = TimerViewModel()
+        vm.breakDurationMinutes = 5
+        vm.skipToBreak()
+        XCTAssertEqual(vm.remainingSeconds, 5 * 60)
+    }
+
+    func test_skipToBreak_pausesTimer() {
+        let vm = TimerViewModel()
+        vm.start()
+        vm.skipToBreak()
+        XCTAssertFalse(vm.isRunning)
+    }
+
+    func test_skipToBreak_whenAlreadyInBreak_isNoOp() {
+        let vm = TimerViewModel()
+        vm.breakDurationMinutes = 5  // set before mode change — AppStorage didSet is a no-op (mode is .focus)
+        vm.mode = .breakTime
+        vm.remainingSeconds = 60  // partially elapsed
+        vm.skipToBreak()
+        // mode unchanged, remainingSeconds unchanged
+        XCTAssertEqual(vm.mode, .breakTime)
+        XCTAssertEqual(vm.remainingSeconds, 60)
+    }
+
+    func test_reset_inBreakMode_staysInBreakMode() {
+        let vm = TimerViewModel()
+        vm.breakDurationMinutes = 5  // set before mode change — AppStorage didSet is a no-op (mode is .focus)
+        vm.mode = .breakTime
+        vm.remainingSeconds = 30
+        vm.reset()
+        XCTAssertEqual(vm.mode, .breakTime)
+        XCTAssertEqual(vm.remainingSeconds, 5 * 60)
+    }
+
+    func test_tick_whenFocusEnds_switchesToBreakMode() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.mode, .breakTime)
+    }
+
+    func test_tick_whenFocusEnds_callsOnFinishWithFocusMode() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 1
+        var completedMode: TimerMode?
+        vm.onFinish = { completedMode = $0 }
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(completedMode, .focus)
+    }
+
+    func test_tick_whenFocusEnds_resetsToBreakDuration() {
+        let vm = TimerViewModel()
+        vm.breakDurationMinutes = 5
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.remainingSeconds, 5 * 60)
+        XCTAssertFalse(vm.isRunning)
+    }
+
+    func test_tick_whenBreakEnds_switchesToFocusMode() {
+        let vm = TimerViewModel()
+        vm.mode = .breakTime
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.mode, .focus)
+    }
+
+    func test_tick_whenBreakEnds_callsOnFinishWithBreakMode() {
+        let vm = TimerViewModel()
+        vm.mode = .breakTime
+        vm.remainingSeconds = 1
+        var completedMode: TimerMode?
+        vm.onFinish = { completedMode = $0 }
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(completedMode, .breakTime)
+    }
+
+    func test_tick_whenBreakEnds_resetsToFocusDuration() {
+        let vm = TimerViewModel()
+        vm.timerDurationMinutes = 25
+        vm.mode = .breakTime
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.remainingSeconds, 25 * 60)
+        XCTAssertFalse(vm.isRunning)
     }
 }

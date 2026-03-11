@@ -13,7 +13,14 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Section {
-                Picker("Timer Duration", selection: $viewModel.timerDurationMinutes) {
+                Picker("Focus Duration", selection: $viewModel.timerDurationMinutes) {
+                    ForEach(durationOptions, id: \.self) { minutes in
+                        Text("\(minutes) minutes").tag(minutes)
+                    }
+                }
+                .pickerStyle(.menu)
+
+                Picker("Break Duration", selection: $viewModel.breakDurationMinutes) {
                     ForEach(durationOptions, id: \.self) { minutes in
                         Text("\(minutes) minutes").tag(minutes)
                     }
@@ -22,13 +29,13 @@ struct SettingsView: View {
             } header: {
                 Text("Pomodoro Settings")
             } footer: {
-                Text("Changing the duration resets the current timer.")
+                Text("Changing focus duration resets the focus timer. Changing break duration resets the break timer.")
                     .foregroundStyle(.secondary)
                     .font(.caption)
             }
         }
         .formStyle(.grouped)
-        .frame(width: 320, height: 150)
+        .frame(width: 320, height: 220)
         .navigationTitle("Settings")
     }
 }

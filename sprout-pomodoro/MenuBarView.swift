@@ -11,6 +11,12 @@ struct MenuBarView: View {
 
     var body: some View {
         VStack(spacing: 16) {
+            Text(viewModel.mode == .focus ? "Focus" : "Break")
+                .font(.system(size: 11, weight: .semibold))
+                .foregroundStyle(viewModel.mode == .focus ? Color.orange : Color.green)
+                .textCase(.uppercase)
+                .tracking(0.5)
+
             Text(viewModel.formattedTime)
                 .font(.system(size: 48, weight: .thin, design: .monospaced))
                 .monospacedDigit()
@@ -20,7 +26,11 @@ struct MenuBarView: View {
                 total: Double(viewModel.durationSeconds)
             )
             .progressViewStyle(.linear)
-            .tint(viewModel.isRunning ? .green : .secondary)
+            .tint(
+                viewModel.isRunning
+                    ? (viewModel.mode == .focus ? .orange : .green)
+                    : .secondary
+            )
 
             HStack(spacing: 16) {
                 Button(action: viewModel.reset) {
@@ -34,7 +44,7 @@ struct MenuBarView: View {
                     Button(action: viewModel.pause) {
                         Image(systemName: "pause.circle.fill")
                             .font(.system(size: 44))
-                            .foregroundStyle(.orange)
+                            .foregroundStyle(viewModel.mode == .focus ? Color.orange : Color.green)
                     }
                     .buttonStyle(.plain)
                     .help("Pause")
@@ -50,6 +60,15 @@ struct MenuBarView: View {
 
                 Color.clear
                     .frame(width: 24, height: 24)
+            }
+
+            if viewModel.mode == .focus && !viewModel.isRunning {
+                Button("Skip to Break") {
+                    viewModel.skipToBreak()
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .buttonStyle(.plain)
             }
 
             Divider()

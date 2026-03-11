@@ -23,8 +23,13 @@ struct SproutPomodoroApp: App {
             MenuBarView()
                 .environmentObject(timerViewModel)
                 .onAppear {
-                    timerViewModel.onFinish = {
-                        NotificationManager.shared.sendTimerFinishedNotification()
+                    timerViewModel.onFinish = { completedMode in
+                        switch completedMode {
+                        case .focus:
+                            NotificationManager.shared.sendFocusFinishedNotification()
+                        case .breakTime:
+                            NotificationManager.shared.sendBreakFinishedNotification()
+                        }
                     }
                 }
         } label: {

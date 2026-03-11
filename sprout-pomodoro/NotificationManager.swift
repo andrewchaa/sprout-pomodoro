@@ -17,10 +17,18 @@ final class NotificationManager {
         }
     }
 
-    func sendTimerFinishedNotification() {
+    func sendFocusFinishedNotification() {
+        send(title: "Focus Complete!", body: "Time to take a break.")
+    }
+
+    func sendBreakFinishedNotification() {
+        send(title: "Break Over!", body: "Time to get back to work.")
+    }
+
+    private func send(title: String, body: String) {
         let content = UNMutableNotificationContent()
-        content.title = "Pomodoro Complete!"
-        content.body = "Time to take a break."
+        content.title = title
+        content.body = body
         content.sound = .default
 
         let request = UNNotificationRequest(

@@ -32,7 +32,7 @@ struct TimerMenuBarLabel: View {
         .frame(height: 22)
         .background {
             if viewModel.isRunning {
-                Capsule().fill(Color.orange)
+                Capsule().fill(viewModel.mode == .focus ? Color.orange : Color.green)
             }
         }
     }
