@@ -134,6 +134,39 @@ final class TimerViewModelTests: XCTestCase {
         XCTAssertEqual(vm.remainingSeconds, 60)
     }
 
+    // MARK: - skipToFocus tests
+
+    func test_skipToFocus_switchesToFocusMode() {
+        let vm = TimerViewModel()
+        vm.mode = .breakTime
+        vm.skipToFocus()
+        XCTAssertEqual(vm.mode, .focus)
+    }
+
+    func test_skipToFocus_resetsRemainingToFocusDuration() {
+        let vm = TimerViewModel()
+        vm.timerDurationMinutes = 25
+        vm.mode = .breakTime
+        vm.skipToFocus()
+        XCTAssertEqual(vm.remainingSeconds, 25 * 60)
+    }
+
+    func test_skipToFocus_pausesTimer() {
+        let vm = TimerViewModel()
+        vm.mode = .breakTime
+        vm.start()
+        vm.skipToFocus()
+        XCTAssertFalse(vm.isRunning)
+    }
+
+    func test_skipToFocus_whenAlreadyInFocus_isNoOp() {
+        let vm = TimerViewModel()
+        vm.remainingSeconds = 60  // partial — mode stays .focus by default
+        vm.skipToFocus()
+        XCTAssertEqual(vm.mode, .focus)
+        XCTAssertEqual(vm.remainingSeconds, 60)
+    }
+
     func test_reset_inBreakMode_staysInBreakMode() {
         let vm = TimerViewModel()
         vm.skipToBreak()       // enter break mode via API

@@ -71,6 +71,15 @@ struct MenuBarView: View {
                 .buttonStyle(.plain)
             }
 
+            if viewModel.mode == .breakTime && !viewModel.isRunning {
+                Button("Skip Break") {
+                    viewModel.skipToFocus()
+                }
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .buttonStyle(.plain)
+            }
+
             Divider()
 
             HStack {

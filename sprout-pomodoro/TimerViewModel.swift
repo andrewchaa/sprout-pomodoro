@@ -87,6 +87,13 @@ final class TimerViewModel: ObservableObject {
         remainingSeconds = durationSeconds
     }
 
+    func skipToFocus() {
+        guard mode == .breakTime else { return }
+        pause()
+        mode = .focus
+        remainingSeconds = durationSeconds
+    }
+
     func tick() {
         guard remainingSeconds > 0 else { return }
         remainingSeconds -= 1
