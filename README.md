@@ -17,7 +17,7 @@ The app lives entirely in the menu bar — no Dock icon, no app window. Click th
 
 - macOS 26.2 (Tahoe) or later
 - Xcode 26.2 or later
-- An Apple Developer account (free tier is sufficient for local builds)
+- An Apple ID signed into Xcode (no paid developer account needed — Xcode creates a free Personal Team automatically)
 
 ## Running locally
 
