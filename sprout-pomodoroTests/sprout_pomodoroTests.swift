@@ -4,10 +4,26 @@
 //
 
 import XCTest
+import SwiftData
 @testable import sprout_pomodoro
 
 @MainActor
 final class TimerViewModelTests: XCTestCase {
+    var container: ModelContainer!
+    var context: ModelContext!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        container = try ModelContainer(for: FocusSession.self, configurations: config)
+        context = container.mainContext
+    }
+
+    override func tearDown() async throws {
+        context = nil
+        container = nil
+        try await super.tearDown()
+    }
 
     func test_initialState_isNotRunning() {
         let vm = TimerViewModel()
@@ -70,6 +86,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenReachesZero_setsIsRunningFalse() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.remainingSeconds = 1
         vm.start()
         vm.tick()
@@ -78,6 +95,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenReachesZero_callsOnFinish() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.remainingSeconds = 1
         var finished = false
         vm.onFinish = { _ in finished = true }
@@ -179,6 +197,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenFocusEnds_switchesToBreakMode() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.remainingSeconds = 1
         vm.start()
         vm.tick()
@@ -187,6 +206,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenFocusEnds_callsOnFinishWithFocusMode() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.remainingSeconds = 1
         var completedMode: TimerMode?
         vm.onFinish = { completedMode = $0 }
@@ -197,6 +217,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenFocusEnds_resetsToBreakDuration() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.breakDurationMinutes = 5
         vm.remainingSeconds = 1
         vm.start()
@@ -207,6 +228,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenBreakEnds_switchesToFocusMode() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.mode = .breakTime
         vm.remainingSeconds = 1
         vm.start()
@@ -216,6 +238,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenBreakEnds_callsOnFinishWithBreakMode() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.mode = .breakTime
         vm.remainingSeconds = 1
         var completedMode: TimerMode?
@@ -227,6 +250,7 @@ final class TimerViewModelTests: XCTestCase {
 
     func test_tick_whenBreakEnds_resetsToFocusDuration() {
         let vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
         vm.timerDurationMinutes = 25
         vm.mode = .breakTime
         vm.remainingSeconds = 1
@@ -234,5 +258,127 @@ final class TimerViewModelTests: XCTestCase {
         vm.tick()
         XCTAssertEqual(vm.remainingSeconds, 25 * 60)
         XCTAssertFalse(vm.isRunning)
+    }
+}
+
+// MARK: - Focus Session Tests
+
+@MainActor
+final class FocusSessionTests: XCTestCase {
+    var container: ModelContainer!
+    var context: ModelContext!
+    var vm: TimerViewModel!
+
+    override func setUp() async throws {
+        try await super.setUp()
+        // Clear UserDefaults timer settings so tests start from a known state
+        UserDefaults.standard.removeObject(forKey: "timerDurationMinutes")
+        UserDefaults.standard.removeObject(forKey: "breakDurationMinutes")
+        let config = ModelConfiguration(isStoredInMemoryOnly: true)
+        container = try ModelContainer(for: FocusSession.self, configurations: config)
+        context = container.mainContext
+        vm = TimerViewModel()
+        vm.setupIfNeeded(context: context, onFinish: { _ in })
+    }
+
+    override func tearDown() async throws {
+        UserDefaults.standard.removeObject(forKey: "timerDurationMinutes")
+        UserDefaults.standard.removeObject(forKey: "breakDurationMinutes")
+        vm = nil
+        context = nil
+        container = nil
+        try await super.tearDown()
+    }
+
+    func test_tick_whenFocusCompletesNaturally_insertsSession() throws {
+        vm.timerDurationMinutes = 20
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        let sessions = try context.fetch(FetchDescriptor<FocusSession>())
+        XCTAssertEqual(sessions.count, 1)
+    }
+
+    func test_tick_whenFocusCompletesNaturally_sessionHasCorrectDuration() throws {
+        vm.timerDurationMinutes = 20
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        let sessions = try context.fetch(FetchDescriptor<FocusSession>())
+        XCTAssertEqual(sessions.first?.durationSeconds, 20 * 60)
+    }
+
+    func test_tick_whenBreakCompletesNaturally_doesNotInsertSession() throws {
+        vm.mode = .breakTime
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        let sessions = try context.fetch(FetchDescriptor<FocusSession>())
+        XCTAssertEqual(sessions.count, 0)
+    }
+
+    func test_tick_multipleCompletions_accumulateSessions() throws {
+        vm.timerDurationMinutes = 20
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        vm.mode = .focus
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        let sessions = try context.fetch(FetchDescriptor<FocusSession>())
+        XCTAssertEqual(sessions.count, 2)
+    }
+
+    func test_dailyFocusSessions_countsTodaySessions() {
+        vm.timerDurationMinutes = 20
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.dailyFocusSessions, 1)
+    }
+
+    func test_formattedDailyTime_zero_showsZeroMin() {
+        XCTAssertEqual(vm.formattedDailyTime, "0 min today")
+    }
+
+    func test_formattedDailyTime_underOneHour_showsMinutes() {
+        vm.timerDurationMinutes = 45
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.formattedDailyTime, "45 min today")
+    }
+
+    func test_formattedDailyTime_exactlyOneHour_showsHourOnly() {
+        vm.timerDurationMinutes = 60
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        XCTAssertEqual(vm.formattedDailyTime, "1h today")
+    }
+
+    func test_formattedDailyTime_overOneHour_showsHoursAndMinutes() {
+        vm.timerDurationMinutes = 20
+        for _ in 0..<4 {
+            vm.mode = .focus
+            vm.remainingSeconds = 1
+            vm.start()
+            vm.tick()
+        }
+        // 4 × 20 min = 80 min = 1h 20m
+        XCTAssertEqual(vm.formattedDailyTime, "1h 20m today")
+    }
+
+    func test_refreshTodaySessions_excludesPreviousDaySessions() throws {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        context.insert(FocusSession(startedAt: yesterday, durationSeconds: 20 * 60))
+        // Trigger a today completion to force a refreshTodaySessions call
+        vm.timerDurationMinutes = 20
+        vm.remainingSeconds = 1
+        vm.start()
+        vm.tick()
+        // Only the today session should be in todaySessions
+        XCTAssertEqual(vm.dailyFocusSessions, 1)
     }
 }

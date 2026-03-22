@@ -8,6 +8,7 @@ import SwiftUI
 struct MenuBarView: View {
     @EnvironmentObject var viewModel: TimerViewModel
     @Environment(\.openSettings) private var openSettings
+    @Environment(\.modelContext) private var modelContext
 
     var body: some View {
         VStack(spacing: 16) {
@@ -101,5 +102,15 @@ struct MenuBarView: View {
         }
         .padding(20)
         .frame(width: 260)
+        .onAppear {
+            viewModel.setupIfNeeded(context: modelContext) { completedMode in
+                switch completedMode {
+                case .focus:
+                    NotificationManager.shared.sendFocusFinishedNotification()
+                case .breakTime:
+                    NotificationManager.shared.sendBreakFinishedNotification()
+                }
+            }
+        }
     }
 }

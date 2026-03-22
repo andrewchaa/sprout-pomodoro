@@ -2,10 +2,9 @@
 //  sprout_pomodoroApp.swift
 //  sprout-pomodoro
 //
-//  Created by Youngho Chaa on 06/03/2026.
-//
 
 import SwiftUI
+import SwiftData
 
 @main
 struct SproutPomodoroApp: App {
@@ -22,20 +21,11 @@ struct SproutPomodoroApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(timerViewModel)
-                .onAppear {
-                    timerViewModel.onFinish = { completedMode in
-                        switch completedMode {
-                        case .focus:
-                            NotificationManager.shared.sendFocusFinishedNotification()
-                        case .breakTime:
-                            NotificationManager.shared.sendBreakFinishedNotification()
-                        }
-                    }
-                }
         } label: {
             RenderedMenuBarLabel(viewModel: timerViewModel)
         }
         .menuBarExtraStyle(.window)
+        .modelContainer(for: FocusSession.self)
 
         Settings {
             SettingsView()

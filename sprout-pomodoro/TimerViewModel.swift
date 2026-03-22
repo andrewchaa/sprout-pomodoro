@@ -5,6 +5,7 @@
 
 import SwiftUI
 import Combine
+import SwiftData
 
 enum TimerMode: Sendable, Equatable {
     case focus
@@ -15,15 +16,17 @@ enum TimerMode: Sendable, Equatable {
 final class TimerViewModel: ObservableObject {
     @Published var timerDurationMinutes: Int
     @Published var breakDurationMinutes: Int
-
     @Published var mode: TimerMode = .focus
     @Published var remainingSeconds: Int
     @Published var isRunning: Bool = false
+    @Published var todaySessions: [FocusSession] = []
 
     var onFinish: ((TimerMode) -> Void)?
 
     private var cancellable: AnyCancellable?
     private var cancellables = Set<AnyCancellable>()
+    private var isSetUp = false
+    private var modelContext: ModelContext?
 
     var durationSeconds: Int {
         switch mode {
@@ -36,6 +39,39 @@ final class TimerViewModel: ObservableObject {
         let minutes = remainingSeconds / 60
         let seconds = remainingSeconds % 60
         return String(format: "%02d:%02d", minutes, seconds)
+    }
+
+    var dailyFocusSessions: Int { todaySessions.count }
+
+    var formattedDailyTime: String {
+        let total = todaySessions.reduce(0) { $0 + $1.durationSeconds }
+        let hours = total / 3600
+        let mins = (total % 3600) / 60
+        if hours > 0 {
+            return mins > 0 ? "\(hours)h \(mins)m today" : "\(hours)h today"
+        }
+        return "\(mins) min today"
+    }
+
+    func setupIfNeeded(context: ModelContext, onFinish: @escaping (TimerMode) -> Void) {
+        guard !isSetUp else { return }
+        isSetUp = true
+        self.modelContext = context
+        self.onFinish = onFinish
+        refreshTodaySessions()
+    }
+
+    private func refreshTodaySessions() {
+        guard let context = modelContext else { return }
+        let startOfToday = Calendar.current.startOfDay(for: Date())
+        let descriptor = FetchDescriptor<FocusSession>(
+            predicate: #Predicate { $0.startedAt >= startOfToday }
+        )
+        do {
+            todaySessions = try context.fetch(descriptor)
+        } catch {
+            print("refreshTodaySessions failed: \(error)")
+        }
     }
 
     init() {
@@ -124,6 +160,10 @@ final class TimerViewModel: ObservableObject {
         remainingSeconds -= 1
         if remainingSeconds == 0 {
             let completedMode = mode
+            if completedMode == .focus, let context = modelContext {
+                context.insert(FocusSession(startedAt: Date(), durationSeconds: timerDurationMinutes * 60))
+                refreshTodaySessions()
+            }
             pause()
             mode = completedMode == .focus ? .breakTime : .focus
             remainingSeconds = durationSeconds
