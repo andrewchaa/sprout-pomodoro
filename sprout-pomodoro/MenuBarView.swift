@@ -99,6 +99,18 @@ struct MenuBarView: View {
                 }
                 .font(.callout)
             }
+
+            Divider()
+
+            HStack {
+                Text("🍅 \(viewModel.dailyFocusSessions) sessions")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Text(viewModel.formattedDailyTime)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(20)
         .frame(width: 260)
