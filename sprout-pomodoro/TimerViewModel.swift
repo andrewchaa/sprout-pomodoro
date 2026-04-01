@@ -162,6 +162,7 @@ final class TimerViewModel: ObservableObject {
             let completedMode = mode
             if completedMode == .focus, let context = modelContext {
                 context.insert(FocusSession(startedAt: Date(), durationSeconds: timerDurationMinutes * 60))
+                try? context.save()
                 refreshTodaySessions()
             }
             pause()

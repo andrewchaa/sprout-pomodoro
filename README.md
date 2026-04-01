@@ -4,6 +4,12 @@ A minimal macOS menu bar Pomodoro timer with focus and break cycles.
 
 The app lives entirely in the menu bar — no Dock icon, no app window. Click the timer in the menu bar to start, pause, or reset your session.
 
+<img src="assets/screenshot.png" width="200" alt="Sprout Pomodoro screenshot" />
+
+## Download
+
+[Download latest release](https://github.com/andrewchaa/sprout-pomodoro/releases/latest)
+
 ## Features
 
 - Focus and break timers that automatically switch when a session ends
