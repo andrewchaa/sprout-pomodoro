@@ -65,10 +65,12 @@ hdiutil create \
 echo "==> Signing DMG..."
 codesign --force --timestamp -s "$SIGNING_IDENTITY" "$DMG"
 
-echo "==> Submitting DMG to Apple Notary Service (this may take a few minutes)..."
+echo "==> Submitting DMG to Apple Notary Service..."
+echo "    Upload + Apple processing can take several minutes — output will appear below."
 xcrun notarytool submit "$DMG" \
     --keychain-profile "sprout-pomodoro" \
-    --wait
+    --wait \
+    2>&1
 
 echo "==> Stapling notarization ticket..."
 xcrun stapler staple "$DMG"
