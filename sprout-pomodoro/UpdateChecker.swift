@@ -18,7 +18,7 @@ private struct GitHubRelease: Decodable {
     }
 }
 
-struct AvailableUpdate {
+struct AvailableUpdate: Equatable {
     let version: String
     let url: URL
 }

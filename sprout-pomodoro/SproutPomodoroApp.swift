@@ -10,7 +10,7 @@ import SwiftData
 struct SproutPomodoroApp: App {
     @StateObject private var timerViewModel = TimerViewModel()
     @StateObject private var updateChecker = UpdateChecker()
-
+    
     init() {
         DispatchQueue.main.async {
             NSApp?.applicationIconImage = NSImage(named: "AppIcon")

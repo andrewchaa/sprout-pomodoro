@@ -10,9 +10,33 @@ struct MenuBarView: View {
     @EnvironmentObject var updateChecker: UpdateChecker
     @Environment(\.openSettings) private var openSettings
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         VStack(spacing: 16) {
+            if let update = updateChecker.availableUpdate {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .foregroundStyle(.blue)
+                    Text("v\(update.version) available")
+                        .font(.caption)
+                        .foregroundStyle(.blue)
+                    Spacer()
+                    Button("Update") {
+                        updateChecker.availableUpdate = nil
+                        openURL(update.url)
+                    }
+                    .controlSize(.small)
+                    .buttonStyle(.borderedProminent)
+                    Button("Later") {
+                        updateChecker.availableUpdate = nil
+                    }
+                    .controlSize(.small)
+                    .buttonStyle(.plain)
+                    .foregroundStyle(.secondary)
+                }
+                Divider()
+            }
             Text(viewModel.mode == .focus ? "Focus" : "Break")
                 .font(.system(size: 11, weight: .semibold))
                 .foregroundStyle(viewModel.mode == .focus ? Color.orange : Color.green)
@@ -125,24 +149,6 @@ struct MenuBarView: View {
                 }
             }
             updateChecker.startPeriodicChecks()
-        }
-        .alert("Update Available", isPresented: Binding(
-            get: { updateChecker.availableUpdate != nil },
-            set: { if !$0 { updateChecker.availableUpdate = nil } }
-        )) {
-            Button("Update") {
-                if let url = updateChecker.availableUpdate?.url {
-                    NSWorkspace.shared.open(url)
-                }
-                updateChecker.availableUpdate = nil
-            }
-            Button("Later", role: .cancel) {
-                updateChecker.availableUpdate = nil
-            }
-        } message: {
-            if let update = updateChecker.availableUpdate {
-                Text("Version \(update.version) is available. Would you like to update?")
-            }
         }
     }
 }
