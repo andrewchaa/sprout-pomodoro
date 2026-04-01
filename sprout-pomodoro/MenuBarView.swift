@@ -7,6 +7,7 @@ import SwiftUI
 
 struct MenuBarView: View {
     @EnvironmentObject var viewModel: TimerViewModel
+    @EnvironmentObject var updateChecker: UpdateChecker
     @Environment(\.openSettings) private var openSettings
     @Environment(\.modelContext) private var modelContext
 
@@ -122,6 +123,25 @@ struct MenuBarView: View {
                 case .breakTime:
                     NotificationManager.shared.sendBreakFinishedNotification()
                 }
+            }
+            updateChecker.startPeriodicChecks()
+        }
+        .alert("Update Available", isPresented: Binding(
+            get: { updateChecker.availableUpdate != nil },
+            set: { if !$0 { updateChecker.availableUpdate = nil } }
+        )) {
+            Button("Update") {
+                if let url = updateChecker.availableUpdate?.url {
+                    NSWorkspace.shared.open(url)
+                }
+                updateChecker.availableUpdate = nil
+            }
+            Button("Later", role: .cancel) {
+                updateChecker.availableUpdate = nil
+            }
+        } message: {
+            if let update = updateChecker.availableUpdate {
+                Text("Version \(update.version) is available. Would you like to update?")
             }
         }
     }

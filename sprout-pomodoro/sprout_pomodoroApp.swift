@@ -9,6 +9,7 @@ import SwiftData
 @main
 struct SproutPomodoroApp: App {
     @StateObject private var timerViewModel = TimerViewModel()
+    @StateObject private var updateChecker = UpdateChecker()
 
     init() {
         DispatchQueue.main.async {
@@ -21,6 +22,7 @@ struct SproutPomodoroApp: App {
         MenuBarExtra {
             MenuBarView()
                 .environmentObject(timerViewModel)
+                .environmentObject(updateChecker)
         } label: {
             RenderedMenuBarLabel(viewModel: timerViewModel)
         }
