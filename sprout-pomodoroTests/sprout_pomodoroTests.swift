@@ -381,4 +381,14 @@ final class FocusSessionTests: XCTestCase {
         // Only the today session should be in todaySessions
         XCTAssertEqual(vm.dailyFocusSessions, 1)
     }
+
+    func test_refreshTodaySessions_directCall_excludesYesterdaySessions() throws {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        context.insert(FocusSession(startedAt: yesterday, durationSeconds: 20 * 60))
+        try context.save()
+
+        vm.refreshTodaySessions()
+
+        XCTAssertEqual(vm.dailyFocusSessions, 0)
+    }
 }
