@@ -145,6 +145,7 @@ struct MenuBarView: View {
                     NotificationManager.shared.sendBreakFinishedNotification()
                 }
             }
+            viewModel.refreshTodaySessions()
             updateChecker.startPeriodicChecks()
         }
     }
