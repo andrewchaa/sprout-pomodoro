@@ -59,17 +59,19 @@ final class UpdateChecker: ObservableObject {
     }
 
     func checkForUpdates() async {
-        let apiURL = URL(string: "https://api.github.com/repos/andrewchaa/sprout-pomodoro/releases/latest")!
+        let apiURL = URL(string: "https://api.github.com/repos/andrewchaa/sprout-pomodoro/releases")!
         do {
             let data = try await fetcher(apiURL)
-            let release = try JSONDecoder().decode(GitHubRelease.self, from: data)
-            let tagComponents = Self.parseVersion(release.tagName)
+            let releases = try JSONDecoder().decode([GitHubRelease].self, from: data)
             let appComponents = Self.parseVersion(appVersion)
-            guard Self.isNewer(tagComponents, than: appComponents),
-                  let url = URL(string: release.htmlUrl) else { return }
-            let displayVersion = release.tagName.hasPrefix("v")
-                ? String(release.tagName.dropFirst())
-                : release.tagName
+            guard let newest = releases
+                .filter({ URL(string: $0.htmlUrl) != nil })
+                .max(by: { Self.parseVersion($0.tagName).lexicographicallyPrecedes(Self.parseVersion($1.tagName)) }),
+                  Self.isNewer(Self.parseVersion(newest.tagName), than: appComponents),
+                  let url = URL(string: newest.htmlUrl) else { return }
+            let displayVersion = newest.tagName.hasPrefix("v")
+                ? String(newest.tagName.dropFirst())
+                : newest.tagName
             availableUpdate = AvailableUpdate(version: displayVersion, url: url)
         } catch {
             // silently ignore — network errors should not surface to the user

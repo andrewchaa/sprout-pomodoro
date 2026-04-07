@@ -61,7 +61,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     func test_newerVersion_setsAvailableUpdate() async {
         let json = Data("""
-        {"tag_name":"v2.0.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v2.0.0"}
+        [{"tag_name":"v2.0.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v2.0.0"}]
         """.utf8)
         let checker = UpdateChecker(appVersion: "1.0", fetcher: { _ in json })
 
@@ -74,9 +74,25 @@ final class UpdateCheckerTests: XCTestCase {
         )
     }
 
+    func test_multipleReleases_picksHighestVersion() async {
+        // Regression: /releases/latest only returns GitHub's "latest" (v1.3),
+        // but /releases returns all — we must pick v1.4 as the true newest.
+        let json = Data("""
+        [
+          {"tag_name":"v1.3.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v1.3.0"},
+          {"tag_name":"v1.4.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v1.4.0"}
+        ]
+        """.utf8)
+        let checker = UpdateChecker(appVersion: "1.2", fetcher: { _ in json })
+
+        await checker.checkForUpdates()
+
+        XCTAssertEqual(checker.availableUpdate?.version, "1.4.0")
+    }
+
     func test_sameVersion_doesNotSetAvailableUpdate() async {
         let json = Data("""
-        {"tag_name":"v1.0.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v1.0.0"}
+        [{"tag_name":"v1.0.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v1.0.0"}]
         """.utf8)
         let checker = UpdateChecker(appVersion: "1.0", fetcher: { _ in json })
 
@@ -87,7 +103,7 @@ final class UpdateCheckerTests: XCTestCase {
 
     func test_olderVersion_doesNotSetAvailableUpdate() async {
         let json = Data("""
-        {"tag_name":"v0.9.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v0.9.0"}
+        [{"tag_name":"v0.9.0","html_url":"https://github.com/andrewchaa/sprout-pomodoro/releases/tag/v0.9.0"}]
         """.utf8)
         let checker = UpdateChecker(appVersion: "1.0", fetcher: { _ in json })
 
