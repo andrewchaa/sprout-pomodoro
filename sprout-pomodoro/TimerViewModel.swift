@@ -170,4 +170,17 @@ final class TimerViewModel: ObservableObject {
             onFinish?(completedMode)
         }
     }
+
+    func resetToFocusIfFirstOpenOfDay(defaults: UserDefaults = .standard) {
+        let today = Calendar.current.startOfDay(for: Date())
+        defer { defaults.set(today, forKey: "lastPopupOpenedDate") }
+
+        if let lastOpened = defaults.object(forKey: "lastPopupOpenedDate") as? Date,
+           lastOpened >= today {
+            return
+        }
+
+        guard !isRunning else { return }
+        skipToFocus()
+    }
 }
