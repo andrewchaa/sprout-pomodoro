@@ -404,8 +404,8 @@ final class FirstOpenOfDayTests: XCTestCase {
 
     override func setUp() async throws {
         try await super.setUp()
+        UserDefaults().removePersistentDomain(forName: suiteName)
         defaults = UserDefaults(suiteName: suiteName)!
-        defaults.removeObject(forKey: key)
         vm = TimerViewModel()
     }
 
@@ -418,8 +418,7 @@ final class FirstOpenOfDayTests: XCTestCase {
 
     func test_firstOpenOfDay_whenBreakModeAndIdle_resetsToFocus() {
         vm.mode = .breakTime
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1,
-            to: Calendar.current.startOfDay(for: Date()))!
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         defaults.set(yesterday, forKey: key)
 
         vm.resetToFocusIfFirstOpenOfDay(defaults: defaults)
@@ -430,8 +429,7 @@ final class FirstOpenOfDayTests: XCTestCase {
     func test_firstOpenOfDay_whenBreakModeAndTimerRunning_doesNotReset() {
         vm.mode = .breakTime
         vm.isRunning = true
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1,
-            to: Calendar.current.startOfDay(for: Date()))!
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         defaults.set(yesterday, forKey: key)
 
         vm.resetToFocusIfFirstOpenOfDay(defaults: defaults)
@@ -457,7 +455,18 @@ final class FirstOpenOfDayTests: XCTestCase {
         XCTAssertEqual(vm.mode, .focus)
     }
 
-    func test_firstOpenOfDay_savesTodayAsLastOpenedDate() {
+    func test_firstOpenOfDay_whenNoPreviousDate_savesTodayAsLastOpenedDate() {
+        vm.resetToFocusIfFirstOpenOfDay(defaults: defaults)
+
+        let saved = defaults.object(forKey: key) as? Date
+        let today = Calendar.current.startOfDay(for: Date())
+        XCTAssertEqual(saved, today)
+    }
+
+    func test_firstOpenOfDay_whenYesterdayStored_savesTodayAsLastOpenedDate() {
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
+        defaults.set(yesterday, forKey: key)
+
         vm.resetToFocusIfFirstOpenOfDay(defaults: defaults)
 
         let saved = defaults.object(forKey: key) as? Date
@@ -468,8 +477,7 @@ final class FirstOpenOfDayTests: XCTestCase {
     func test_firstOpenOfDay_whenTimerRunning_stillSavesToday() {
         vm.mode = .breakTime
         vm.isRunning = true
-        let yesterday = Calendar.current.date(byAdding: .day, value: -1,
-            to: Calendar.current.startOfDay(for: Date()))!
+        let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: Date())!
         defaults.set(yesterday, forKey: key)
 
         vm.resetToFocusIfFirstOpenOfDay(defaults: defaults)
